@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#f1f5f9">
     <title>中鋼辨識系統 v2.6.2</title>
+    
+    <!-- 核心套件 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -17,7 +22,7 @@
         body { 
             padding-top: var(--safe-top); 
             padding-bottom: var(--safe-bottom); 
-            background-color: #f1f5f9; 
+            background-color: #f1f5f9; /* 避免黑屏，強制初始背景色 */
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
@@ -35,7 +40,6 @@
             -webkit-backdrop-filter: blur(8px);
         }
 
-        /* 標題美化：強化藍色系漸層 */
         .brand-text {
             background: linear-gradient(135deg, #4f46e5 0%, #2563eb 50%, #3b82f6 100%);
             -webkit-background-clip: text;
@@ -62,7 +66,6 @@
         .dir-option { border: 2.5px solid #e2e8f0; padding: 10px; border-radius: 14px; transition: all 0.2s; text-align: center; cursor: pointer; background: white; }
         .dir-option.active { border-color: #3b82f6; background-color: #eff6ff; color: #1d4ed8; }
 
-        /* 狀態燈動畫 */
         .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; transition: all 0.3s; }
         .dot-red { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
         .dot-green { background-color: #22c55e; box-shadow: 0 0 10px #22c55e; animation: pulse 2s infinite; }
@@ -86,7 +89,8 @@
         <nav class="ios-blur sticky top-0 z-40 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl brand-text italic uppercase leading-none tracking-tighter">CSC Scanner</h1>
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">中鋼辨識系統 v2.6.2</p>
+                <!-- 固定副標題與版本號 -->
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">中鋼磅單辨識系統 v2.6.2</p>
             </div>
             <div class="flex items-center gap-3">
                 <span id="statDisplay" class="text-[10px] font-black text-slate-500 uppercase">0 幾筆資料</span>
@@ -139,8 +143,8 @@
             <div class="flex gap-3">
                 <button id="resetBtn" class="flex-1 bg-slate-100 text-slate-500 font-bold py-4 rounded-xl text-sm active:bg-slate-200 transition-colors">清除全部</button>
                 <button id="exportBtn" class="flex-[2.5] bg-emerald-600 text-white font-black py-4 rounded-xl text-sm hidden shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    匯出 Excel 報告
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                    匯出 Excel (分享)
                 </button>
             </div>
             <div class="text-center">
@@ -153,12 +157,11 @@
     <div id="helpModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-6 modal-blur">
         <div class="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl modal-animate">
             <div class="bg-slate-900 p-6 text-white text-center">
-                <h3 class="text-xl font-black italic tracking-tighter uppercase">系統設定與操作指南</h3>
+                <h3 class="text-xl font-black italic tracking-tighter uppercase">系統說明與設定</h3>
                 <p class="text-[10px] font-bold opacity-60 mt-1 uppercase">v2.6.2 System Documentation</p>
             </div>
-            
             <div class="p-6 space-y-6 max-h-[60vh] overflow-y-auto scroll-hide">
-                <!-- API Key 驗證窗口 -->
+                <!-- API 設定 -->
                 <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-inner">
                     <div class="flex justify-between items-center mb-2">
                         <label class="text-[11px] font-black uppercase text-blue-600 tracking-tight">Gemini API Key 驗證</label>
@@ -170,40 +173,47 @@
                     </div>
                 </div>
 
-                <!-- 指南內容 -->
-                <div class="space-y-5">
-                    <div class="flex gap-4">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex-shrink-0 flex items-center justify-center font-black text-xs">A</div>
-                        <div>
-                            <h4 class="font-black text-sm text-slate-800">手機端匯出提示</h4>
-                            <p class="text-[11px] text-slate-500 leading-relaxed mt-1">
-                                點擊「匯出 Excel」後，手機會彈出儲存提示。您可以選擇「儲存至檔案」或直接透過 LINE 分享給對象。
-                            </p>
-                        </div>
+                <!-- 功能說明 -->
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="text-[12px] font-black text-slate-800 border-l-4 border-blue-500 pl-2 mb-2 uppercase italic">操作注意技巧</h4>
+                        <ul class="text-[11px] text-slate-500 space-y-2 font-bold leading-relaxed">
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-500">●</span>
+                                <span>拍攝時請保持磅單平整，避免陰影遮蓋關鍵數字。</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-500">●</span>
+                                <span>若圖片傾斜，可點擊預覽圖右下角的「旋轉鈕」修正至水平，提升辨識率。</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-500">●</span>
+                                <span>光線不足時請開啟閃光燈，模糊的圖片會導致 AI 判讀錯誤。</span>
+                            </li>
+                        </ul>
                     </div>
-                    <div class="flex gap-4">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex-shrink-0 flex items-center justify-center font-black text-xs">B</div>
-                        <div>
-                            <h4 class="font-black text-sm text-slate-800">圖像預處理</h4>
-                            <p class="text-[11px] text-slate-500 leading-relaxed mt-1">
-                                確保磅單文字為**水平方向**。若拍攝時傾斜，請點擊預覽圖下方的旋轉按鈕，修正角度可大幅提升 AI 準確率。
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex gap-4">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex-shrink-0 flex items-center justify-center font-black text-xs">C</div>
-                        <div>
-                            <h4 class="font-black text-sm text-slate-800">排序與編輯</h4>
-                            <p class="text-[11px] text-slate-500 leading-relaxed mt-1">
-                                辨識出的結果可以透過**長按左側橫線**手動調整順序，方便對應公司內部的出貨序號。
-                            </p>
-                        </div>
+
+                    <div>
+                        <h4 class="text-[12px] font-black text-slate-800 border-l-4 border-emerald-500 pl-2 mb-2 uppercase italic">主要功能說明</h4>
+                        <ul class="text-[11px] text-slate-500 space-y-2 leading-relaxed">
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 font-black">1.</span>
+                                <span><strong class="text-slate-700">掃描方向：</strong>中鋼磅單有多種格式，請依據流水號或日期位置選擇「左至右」或「右至左」掃描模式。</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 font-black">2.</span>
+                                <span><strong class="text-slate-700">自動格式化：</strong>AI 會自動擷取車號、日期及各項重量，並轉換為 Excel 格式。</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 font-black">3.</span>
+                                <span><strong class="text-slate-700">原生分享：</strong>點擊匯出後可直接選擇傳送到 LINE、WeChat 或系統郵件。</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
-            
             <div class="p-6 bg-slate-50 border-t border-slate-100">
-                <button onclick="toggleHelp(false)" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl active:scale-95 transition-transform shadow-lg shadow-slate-200">了解並返回</button>
+                <button onclick="toggleHelp(false)" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl active:scale-95 transition-transform shadow-lg">確認了解</button>
             </div>
         </div>
     </div>
@@ -246,6 +256,7 @@
         };
 
         window.onload = () => {
+            document.body.style.backgroundColor = "#f1f5f9";
             if(userApiKey) {
                 ui.keyInput.value = userApiKey;
                 verifyKey(userApiKey);
@@ -262,8 +273,6 @@
             if(!key) return;
             ui.verifyBtn.disabled = true;
             ui.verifyStatus.innerText = "驗證中...";
-            ui.verifyStatus.className = "text-[9px] font-bold text-blue-400";
-            
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
                 const res = await fetch(url, {
@@ -271,7 +280,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: "ping" }] }] })
                 });
-                
                 if(res.ok) {
                     userApiKey = key;
                     localStorage.setItem(`${APP_ID}_KEY`, key);
@@ -284,9 +292,7 @@
                 ui.verifyStatus.className = "text-[9px] font-bold text-red-500";
                 ui.apiDot.className = "status-dot dot-red";
                 userApiKey = "";
-            } finally {
-                ui.verifyBtn.disabled = false;
-            }
+            } finally { ui.verifyBtn.disabled = false; }
         }
 
         window.toggleHelp = (show) => ui.help.classList.toggle('hidden', !show);
@@ -344,10 +350,7 @@
             }
         };
 
-        window.removeItem = (id) => {
-            queue = queue.filter(f => f.id !== id);
-            renderQueue();
-        };
+        window.removeItem = (id) => { queue = queue.filter(f => f.id !== id); renderQueue(); };
 
         function renderQueue() {
             ui.previews.classList.toggle('hidden', queue.length === 0);
@@ -372,7 +375,6 @@
             const batch = [...queue];
             ui.total.innerText = batch.length;
             queue = []; renderQueue();
-
             for (let i = 0; i < batch.length; i++) {
                 ui.curr.innerText = i + 1;
                 const rotatedBase64 = await finalizeImage(batch[i]);
@@ -426,27 +428,14 @@
             } catch (e) { return null; }
         }
 
-        let dragId = null;
-        window.onDragS = (e) => { dragId = e.currentTarget.dataset.id; e.currentTarget.classList.add('dragging'); };
-        window.onDragO = (e) => { e.preventDefault(); const target = e.currentTarget; if (target.dataset.id !== dragId) target.style.borderTop = "3px solid #3b82f6"; };
-        window.onDragL = (e) => e.currentTarget.style.borderTop = "none";
-        window.onDrop = (e) => {
-            e.preventDefault(); e.currentTarget.style.borderTop = "none";
-            const tid = e.currentTarget.dataset.id; if (dragId === tid) return;
-            const from = history.findIndex(h => h._id === dragId);
-            const to = history.findIndex(h => h._id === tid);
-            const [item] = history.splice(from, 1); history.splice(to, 0, item);
-            renderHistory();
-        };
-
         function renderHistory() {
             ui.stats.innerText = `${history.length} 幾筆資料`;
             ui.export.classList.toggle('hidden', history.length === 0);
             ui.welcome.classList.toggle('hidden', history.length > 0);
             ui.list.innerHTML = history.map((h, i) => `
                 <div class="record-card bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-1" 
-                     draggable="true" data-id="${h._id}" ondragstart="onDragS(event)" ondragover="onDragO(event)" ondragleave="onDragL(event)" ondrop="onDrop(event)">
-                    <div class="px-3 text-slate-300 cursor-grab"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg></div>
+                     draggable="true" data-id="${h._id}">
+                    <div class="px-3 text-slate-300"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg></div>
                     <div class="flex-1">
                         <div class="flex justify-between mb-1">
                             <span class="text-[9px] font-black bg-blue-600 text-white px-2 py-0.5 rounded italic shadow-sm">#${i+1}</span>
@@ -470,7 +459,8 @@
 
         window.deleteRow = (id) => { history = history.filter(h => h._id !== id); renderHistory(); };
 
-        function exportToExcel() {
+        async function exportToExcel() {
+            if (history.length === 0) return;
             const data = history.map((h, i) => ({ 
                 "序號": i + 1, "日期": h.date, "品名": h.material, "車號": h.truck_id, 
                 "總重": h.gross_weight, "空重": h.empty_weight, "淨重": h.net_weight, "磅單編號": h.serial 
@@ -479,19 +469,30 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "磅單數據");
             
-            // 強化手機端下載相容性：使用 Blob 觸發外部連結下載
-            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-            function s2ab(s) {
-                const buf = new ArrayBuffer(s.length);
-                const view = new Uint8Array(buf);
-                for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-                return buf;
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const fileName = `CSC_Report_${new Date().getTime()}.xlsx`;
+            const file = new File([wbout], fileName, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: '中鋼磅單報表',
+                        text: '這是從 CSC Scanner 產出的辨識報表。'
+                    });
+                } catch (err) {
+                    fallbackDownload(file, fileName);
+                }
+            } else {
+                fallbackDownload(file, fileName);
             }
-            const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
-            const url = URL.createObjectURL(blob);
+        }
+
+        function fallbackDownload(file, fileName) {
+            const url = URL.createObjectURL(file);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `CSC_Report_${new Date().getTime()}.xlsx`;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             setTimeout(() => {
