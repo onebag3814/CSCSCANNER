@@ -87,3 +87,5 @@ Deployment: GitHub Pages (PWA 模式支援)
 🔒 安全性聲明
 
 本系統採取 「金鑰本地化」 策略。使用者的 Gemini API Key 僅儲存於當前瀏覽器的 localStorage 中，不會上傳至任何第三方伺服器，確保開發者與使用者的資安疑慮降至最低。
+
+創作者：聯鋼開發 HSU SHIH HUNG
