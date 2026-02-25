@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>中鋼磅單辨識系統 v2.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <style>
+        :root { 
+            --safe-top: env(safe-area-inset-top); 
+            --safe-bottom: env(safe-area-inset-bottom); 
+        }
+        
+        body { 
+            padding-top: var(--safe-top); 
+            padding-bottom: var(--safe-bottom); 
+            background-color: #f8fafc; 
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .ios-blur { 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: saturate(180%) blur(20px); 
+            -webkit-backdrop-filter: saturate(180%) blur(20px); 
+        }
+
+        .modal-blur {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .record-card {
+            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+            touch-action: pan-y;
+            user-select: none;
+        }
+
+        .dragging {
+            opacity: 0.4;
+            transform: scale(0.98);
+        }
+
+        .preview-img-container { width: 100%; height: 100px; border-radius: 12px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #1e293b; }
+        .preview-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; }
+        
+        .remove-x { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; cursor: pointer; z-index: 20; }
+        .rotate-btn { position: absolute; bottom: 35px; right: 5px; background: rgba(0,0,0,0.7); color: white; width: 28px; height: 28px; border-radius: 8px; display: flex; items: center; justify-content: center; cursor: pointer; z-index: 10; }
+
+        .dir-option { border: 2.5px solid #e2e8f0; padding: 10px; border-radius: 14px; transition: all 0.2s; text-align: center; cursor: pointer; background: white; }
+        .dir-option.active { border-color: #3b82f6; background-color: #eff6ff; color: #1d4ed8; }
+
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .modal-animate { animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="font-sans antialiased text-slate-900">
+
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col">
+        <!-- 導覽列 -->
+        <nav class="ios-blur sticky top-0 z-40 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
+            <div>
+                <h1 class="text-lg font-black text-blue-600 tracking-tighter uppercase italic leading-none">CSC Scanner Pro</h1>
+                <p class="text-[11px] text-slate-500 font-bold mt-1">中鋼磅單辨識系統 v2.5</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="statDisplay" class="bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-black shadow-sm">0 筆資料</div>
+                <button onclick="toggleHelp(true)" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </button>
+            </div>
+        </nav>
+
+        <main class="p-4 space-y-4 flex-1">
+            <!-- 上傳區域 -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+                <div id="dropZone" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl py-8 text-center cursor-pointer flex flex-col items-center hover:bg-slate-100 transition-colors">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <p class="text-sm font-black text-slate-600">上傳磅單圖片或 PDF</p>
+                    <input type="file" id="fileInput" class="hidden" accept="image/*,application/pdf" multiple>
+                </div>
+
+                <div id="previewArea" class="mt-4 flex gap-3 overflow-x-auto pb-4 hidden scroll-hide"></div>
+
+                <div class="mt-4 flex gap-2">
+                    <button class="dir-option active flex-1" data-dir="ltr">
+                        <span class="text-[11px] font-black uppercase">左至右 ➔</span>
+                    </button>
+                    <button class="dir-option flex-1" data-dir="rtl">
+                        <span class="text-[11px] font-black uppercase">右至左 ➔</span>
+                    </button>
+                </div>
+
+                <button id="analyzeBtn" class="w-full mt-4 bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all disabled:bg-slate-200 disabled:shadow-none" disabled>
+                    開始辨識 (<span id="queueNum">0</span>)
+                </button>
+            </div>
+
+            <!-- 結果列表 -->
+            <div id="resultsList" class="space-y-3 pb-40">
+                <div id="welcome" class="text-center py-16 opacity-30">
+                    <svg class="w-16 h-16 mx-auto mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <p class="text-xs font-bold italic tracking-widest uppercase text-slate-500">等待資料上傳</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部 -->
+        <footer class="fixed bottom-0 left-0 right-0 ios-blur border-t border-slate-100 p-4 pb-6 flex flex-col gap-3 z-40">
+            <div class="flex gap-3">
+                <button id="resetBtn" class="flex-1 bg-slate-100 text-slate-500 font-bold py-4 rounded-xl text-sm active:bg-slate-200 transition-colors">清除資料</button>
+                <button id="exportBtn" class="flex-[2.5] bg-emerald-600 text-white font-black py-4 rounded-xl text-sm hidden shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                    匯出 Excel 報告
+                </button>
+            </div>
+            <div class="text-center">
+                <p class="text-[9px] font-black text-slate-300 tracking-[0.2em] uppercase">Authored by HSH.IKITAI</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 說明 Modal -->
+    <div id="helpModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-6 modal-blur">
+        <div class="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl modal-animate">
+            <div class="bg-blue-600 p-6 text-white text-center">
+                <h3 class="text-xl font-black italic tracking-tighter uppercase">操作指南</h3>
+                <p class="text-[10px] font-bold opacity-80 mt-1 uppercase">CSC Scanner Manual</p>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="flex gap-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black text-xs">1</div>
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800">上傳與旋轉</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed mt-1">選取磅單圖片。若圖片顛倒，請使用預覽圖下方的<span class="text-blue-600 font-bold">旋轉按鈕</span>將文字調整為水平。</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black text-xs">2</div>
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800">選擇方向</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed mt-1">根據磅單印刷位置選擇方向（左至右/右至左），確保 AI 正確讀取資料。</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black text-xs">3</div>
+                    <div>
+                        <h4 class="font-black text-sm text-slate-800">資料排序</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed mt-1">辨識完成後，長按左側<span class="text-slate-400 font-bold">三橫線圖示</span>即可上下拖移調整資料順序。</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 bg-slate-50 border-t border-slate-100">
+                <button onclick="toggleHelp(false)" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl active:scale-95 transition-transform">開始使用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入層 -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-md">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <p class="font-black text-slate-800 tracking-widest uppercase">AI 正在辨識數據</p>
+            <p class="text-[10px] text-slate-400 mt-2 font-bold italic">Processing <span id="currentNum">1</span> / <span id="totalNum">1</span></p>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; 
+        const model = "gemini-2.5-flash-preview-09-2025";
+        let queue = [];
+        let history = []; 
+        let scanConfig = "ltr";
+
+        const ui = {
+            input: document.getElementById('fileInput'),
+            drop: document.getElementById('dropZone'),
+            previews: document.getElementById('previewArea'),
+            btn: document.getElementById('analyzeBtn'),
+            list: document.getElementById('resultsList'),
+            welcome: document.getElementById('welcome'),
+            loading: document.getElementById('loadingOverlay'),
+            export: document.getElementById('exportBtn'),
+            stats: document.getElementById('statDisplay'),
+            reset: document.getElementById('resetBtn'),
+            help: document.getElementById('helpModal'),
+            curr: document.getElementById('currentNum'),
+            total: document.getElementById('totalNum')
+        };
+
+        // UI Helpers
+        window.toggleHelp = (show) => ui.help.classList.toggle('hidden', !show);
+
+        // File Selection
+        ui.drop.onclick = () => ui.input.click();
+
+        ui.input.onchange = async (e) => {
+            const files = Array.from(e.target.files);
+            for (const f of files) {
+                const id = Math.random().toString(36).substring(7);
+                let src = (f.type === 'application/pdf') ? await pdfToImg(f) : await imgToCanvas(f);
+                queue.push({ id, file: f, src, rotation: 0 });
+                renderQueue();
+            }
+            ui.input.value = "";
+        };
+
+        async function imgToCanvas(file) {
+            return new Promise(r => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        const MAX = 1200; 
+                        if (w > h && w > MAX) { h *= MAX/w; w = MAX; }
+                        else if (h > w && h > MAX) { w *= MAX/h; h = MAX; }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        r(canvas.toDataURL('image/jpeg', 0.8));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function pdfToImg(file) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const ab = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+            const page = await pdf.getPage(1);
+            const vp = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            canvas.height = vp.height; canvas.width = vp.width;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+            return canvas.toDataURL('image/jpeg', 0.8);
+        }
+
+        window.rotateItem = (id) => {
+            const item = queue.find(q => q.id === id);
+            if (item) {
+                item.rotation = (item.rotation + 90) % 360;
+                document.querySelector(`[data-id="${id}"] .preview-img`).style.transform = `rotate(${item.rotation}deg)`;
+            }
+        };
+
+        window.removeItem = (id) => {
+            queue = queue.filter(f => f.id !== id);
+            renderQueue();
+        };
+
+        function renderQueue() {
+            ui.previews.classList.toggle('hidden', queue.length === 0);
+            ui.btn.disabled = queue.length === 0;
+            document.getElementById('queueNum').innerText = queue.length;
+            ui.previews.innerHTML = queue.map((f, i) => `
+                <div class="relative flex-shrink-0 w-24" data-id="${f.id}">
+                    <div class="remove-x" onclick="removeItem('${f.id}')">×</div>
+                    <div class="preview-img-container">
+                        <img src="${f.src}" class="preview-img" style="transform: rotate(${f.rotation}deg)">
+                    </div>
+                    <div class="rotate-btn" onclick="rotateItem('${f.id}')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Logic
+        ui.btn.onclick = async () => {
+            ui.loading.classList.remove('hidden');
+            const batch = [...queue];
+            ui.total.innerText = batch.length;
+            queue = []; renderQueue();
+
+            for (let i = 0; i < batch.length; i++) {
+                ui.curr.innerText = i + 1;
+                const rotatedBase64 = await finalizeImage(batch[i]);
+                const result = await callGemini(rotatedBase64);
+                if (result) {
+                    const dataArray = Array.isArray(result) ? result : [result];
+                    dataArray.forEach(d => {
+                        d._id = Math.random().toString(36).substring(7);
+                        history.push(d);
+                    });
+                    renderHistory();
+                }
+            }
+            ui.loading.classList.add('hidden');
+        };
+
+        async function finalizeImage(item) {
+            return new Promise(r => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    if (item.rotation % 180 !== 0) {
+                        canvas.width = img.height; canvas.height = img.width;
+                    } else {
+                        canvas.width = img.width; canvas.height = img.height;
+                    }
+                    ctx.translate(canvas.width/2, canvas.height/2);
+                    ctx.rotate(item.rotation * Math.PI / 180);
+                    ctx.drawImage(img, -img.width/2, -img.height/2);
+                    r(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+                };
+                img.src = item.src;
+            });
+        }
+
+        async function callGemini(base64) {
+            const dir = scanConfig === "ltr" ? "左至右" : "右至左";
+            const prompt = `你是中鋼磅單辨識專家。辨識圖片並提取以下 JSON 欄位：date, material, truck_id, gross_weight, empty_weight, net_weight, serial。辨識順序為：${dir}。不要輸出 Markdown 標籤，只要純 JSON。`;
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
+                        generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+                    })
+                });
+                const d = await res.json();
+                return JSON.parse(d.candidates[0].content.parts[0].text);
+            } catch (e) { return null; }
+        }
+
+        // Draggable History
+        let dragId = null;
+
+        window.onDragS = (e) => {
+            dragId = e.currentTarget.dataset.id;
+            e.currentTarget.classList.add('dragging');
+        };
+        window.onDragO = (e) => {
+            e.preventDefault();
+            const target = e.currentTarget;
+            if (target.dataset.id !== dragId) target.style.borderTop = "3px solid #3b82f6";
+        };
+        window.onDragL = (e) => e.currentTarget.style.borderTop = "none";
+        window.onDrop = (e) => {
+            e.preventDefault();
+            e.currentTarget.style.borderTop = "none";
+            const tid = e.currentTarget.dataset.id;
+            if (dragId === tid) return;
+            const from = history.findIndex(h => h._id === dragId);
+            const to = history.findIndex(h => h._id === tid);
+            const [item] = history.splice(from, 1);
+            history.splice(to, 0, item);
+            renderHistory();
+        };
+
+        function renderHistory() {
+            ui.stats.innerText = `${history.length} 筆資料`;
+            ui.export.classList.toggle('hidden', history.length === 0);
+            ui.welcome.classList.toggle('hidden', history.length > 0);
+            
+            ui.list.innerHTML = history.map((h, i) => `
+                <div class="record-card bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-1" 
+                     draggable="true" 
+                     data-id="${h._id}"
+                     ondragstart="onDragS(event)"
+                     ondragover="onDragO(event)"
+                     ondragleave="onDragL(event)"
+                     ondragend="event.currentTarget.classList.remove('dragging')"
+                     ondrop="onDrop(event)">
+                    <div class="px-3 text-slate-300 cursor-grab"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg></div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[9px] font-black bg-blue-600 text-white px-2 py-0.5 rounded italic">#${i+1}</span>
+                            <span class="text-[10px] font-bold text-slate-400 font-mono">${h.date || '---'}</span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-lg font-black text-slate-800 tracking-tight leading-none">${h.truck_id || '---'}</p>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1 italic truncate max-w-[120px]">${h.material || '品名'}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl font-black text-blue-600 italic font-mono leading-none">${h.net_weight || 0}</p>
+                                <p class="text-[8px] font-bold text-slate-400 uppercase italic">Net KG</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="deleteRow('${h._id}')" class="p-2 text-slate-200 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                </div>
+            `).join('');
+        }
+
+        window.deleteRow = (id) => {
+            history = history.filter(h => h._id !== id);
+            renderHistory();
+        };
+
+        ui.reset.onclick = () => {
+            if(confirm("確定清除目前所有辨識資料？")) {
+                history = []; renderHistory();
+            }
+        };
+
+        ui.export.onclick = async () => {
+            const data = history.map((h, i) => ({ 
+                "序號": i + 1, "日期": h.date, "品名": h.material, "車號": h.truck_id, 
+                "總重": h.gross_weight, "空重": h.empty_weight, "淨重": h.net_weight, "磅單編號": h.serial 
+            }));
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "磅單數據");
+            const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const file = new File([buf], `CSC_DATA_${new Date().getTime()}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            if (navigator.share) {
+                try { await navigator.share({ files: [file], title: '中鋼辨識報告' }); } catch (e) { XLSX.writeFile(wb, `CSC_DATA.xlsx`); }
+            } else {
+                XLSX.writeFile(wb, `CSC_DATA.xlsx`);
+            }
+        };
+
+        document.querySelectorAll('.dir-option').forEach(opt => {
+            opt.onclick = () => {
+                document.querySelectorAll('.dir-option').forEach(el => el.classList.remove('active'));
+                opt.classList.add('active');
+                scanConfig = opt.dataset.dir;
+            };
+        });
+    </script>
+</body>
+</html>
