@@ -22,7 +22,7 @@
         body { 
             padding-top: var(--safe-top); 
             padding-bottom: var(--safe-bottom); 
-            background-color: #f1f5f9; /* 避免黑屏，強制初始背景色 */
+            background-color: #f1f5f9; 
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
@@ -49,13 +49,21 @@
             filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.1));
         }
 
+        /* 拖曳樣式 */
         .record-card {
-            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
-            touch-action: pan-y;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+            touch-action: none;
             user-select: none;
+            cursor: grab;
         }
-
-        .dragging { opacity: 0.4; transform: scale(0.98); }
+        .record-card:active { cursor: grabbing; }
+        .record-card.dragging { 
+            opacity: 0.4; 
+            transform: scale(1.02); 
+            background: #eff6ff;
+            border-color: #3b82f6;
+            z-index: 50;
+        }
 
         .preview-img-container { width: 100%; height: 100px; border-radius: 12px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #1e293b; position: relative; }
         .preview-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; }
@@ -89,7 +97,6 @@
         <nav class="ios-blur sticky top-0 z-40 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl brand-text italic uppercase leading-none tracking-tighter">CSC Scanner</h1>
-                <!-- 固定副標題與版本號 -->
                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">中鋼磅單辨識系統 v2.6.2</p>
             </div>
             <div class="flex items-center gap-3">
@@ -161,7 +168,6 @@
                 <p class="text-[10px] font-bold opacity-60 mt-1 uppercase">v2.6.2 System Documentation</p>
             </div>
             <div class="p-6 space-y-6 max-h-[60vh] overflow-y-auto scroll-hide">
-                <!-- API 設定 -->
                 <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-inner">
                     <div class="flex justify-between items-center mb-2">
                         <label class="text-[11px] font-black uppercase text-blue-600 tracking-tight">Gemini API Key 驗證</label>
@@ -173,41 +179,22 @@
                     </div>
                 </div>
 
-                <!-- 功能說明 -->
                 <div class="space-y-4">
                     <div>
                         <h4 class="text-[12px] font-black text-slate-800 border-l-4 border-blue-500 pl-2 mb-2 uppercase italic">操作注意技巧</h4>
                         <ul class="text-[11px] text-slate-500 space-y-2 font-bold leading-relaxed">
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-500">●</span>
-                                <span>拍攝時請保持磅單平整，避免陰影遮蓋關鍵數字。</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-500">●</span>
-                                <span>若圖片傾斜，可點擊預覽圖右下角的「旋轉鈕」修正至水平，提升辨識率。</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-500">●</span>
-                                <span>光線不足時請開啟閃光燈，模糊的圖片會導致 AI 判讀錯誤。</span>
-                            </li>
+                            <li class="flex items-start gap-2"><span class="text-blue-500">●</span><span>拍攝時請保持磅單平整，避免陰影遮蓋關鍵數字。</span></li>
+                            <li class="flex items-start gap-2"><span class="text-blue-500">●</span><span>辨識明細可上下拖曳調整順序，重疊時會自動擠壓換位。</span></li>
+                            <li class="flex items-start gap-2"><span class="text-blue-500">●</span><span>光線不足時請開啟閃光燈，提升文字對比度。</span></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 class="text-[12px] font-black text-slate-800 border-l-4 border-emerald-500 pl-2 mb-2 uppercase italic">主要功能說明</h4>
                         <ul class="text-[11px] text-slate-500 space-y-2 leading-relaxed">
-                            <li class="flex items-start gap-2">
-                                <span class="text-emerald-500 font-black">1.</span>
-                                <span><strong class="text-slate-700">掃描方向：</strong>中鋼磅單有多種格式，請依據流水號或日期位置選擇「左至右」或「右至左」掃描模式。</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-emerald-500 font-black">2.</span>
-                                <span><strong class="text-slate-700">自動格式化：</strong>AI 會自動擷取車號、日期及各項重量，並轉換為 Excel 格式。</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-emerald-500 font-black">3.</span>
-                                <span><strong class="text-slate-700">原生分享：</strong>點擊匯出後可直接選擇傳送到 LINE、WeChat 或系統郵件。</span>
-                            </li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">1.</span><span><strong class="text-slate-700">掃描方向：</strong>依流水號位置選擇「左至右」或「右至左」模式。</span></li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">2.</span><span><strong class="text-slate-700">時間擷取：</strong>自動辨識進磅與出磅時間並匯入 Excel。</span></li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">3.</span><span><strong class="text-slate-700">原生分享：</strong>匯出報表後可直接傳送至通訊軟體。</span></li>
                         </ul>
                     </div>
                 </div>
@@ -234,6 +221,7 @@
         let queue = [];
         let history = []; 
         let scanConfig = "ltr";
+        let draggedItem = null;
 
         const ui = {
             input: document.getElementById('fileInput'),
@@ -267,6 +255,9 @@
             ui.verifyBtn.onclick = () => verifyKey(ui.keyInput.value.trim());
             ui.reset.onclick = () => { if(confirm("確定清除目前所有辨識資料？")) { history=[]; renderHistory(); } };
             ui.export.onclick = exportToExcel;
+
+            // 初始化拖曳事件監聽
+            setupDragging();
         };
 
         async function verifyKey(key) {
@@ -413,7 +404,7 @@
 
         async function callGemini(base64) {
             const dir = scanConfig === "ltr" ? "左至右" : "右至左";
-            const prompt = `你現在是中鋼磅單辨識專家。辨識這張圖片並精確提取 JSON：date, material, truck_id, gross_weight, empty_weight, net_weight, serial。辨識掃描方向為：${dir}。只需回傳 JSON 字串，不要任何輔助文字。`;
+            const prompt = `你現在是中鋼磅單辨識專家。辨識這張圖片並精確提取 JSON：date (日期), time_in (進磅時間), time_out (出磅時間), material (品名), truck_id (車號), gross_weight (總重), empty_weight (空重), net_weight (淨重), serial (磅單編號)。辨識掃描方向為：${dir}。只需回傳 JSON 字串，不要任何輔助文字。`;
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${userApiKey}`, {
                     method: 'POST',
@@ -435,8 +426,10 @@
             ui.list.innerHTML = history.map((h, i) => `
                 <div class="record-card bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-1" 
                      draggable="true" data-id="${h._id}">
-                    <div class="px-3 text-slate-300"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg></div>
-                    <div class="flex-1">
+                    <div class="px-3 text-slate-300 pointer-events-none">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg>
+                    </div>
+                    <div class="flex-1 pointer-events-none">
                         <div class="flex justify-between mb-1">
                             <span class="text-[9px] font-black bg-blue-600 text-white px-2 py-0.5 rounded italic shadow-sm">#${i+1}</span>
                             <span class="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">${h.date || '---'}</span>
@@ -452,18 +445,72 @@
                             </div>
                         </div>
                     </div>
-                    <button onclick="deleteRow('${h._id}')" class="p-2 text-slate-200 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                    <button onclick="deleteRow('${h._id}')" class="p-2 text-slate-200 hover:text-red-500 transition-colors pointer-events-auto">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
                 </div>
             `).join('');
+        }
+
+        // 拖曳排序邏輯 (擠壓取代)
+        function setupDragging() {
+            ui.list.addEventListener('dragstart', (e) => {
+                draggedItem = e.target.closest('.record-card');
+                draggedItem.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            ui.list.addEventListener('dragend', () => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                }
+                const currentCards = Array.from(ui.list.querySelectorAll('.record-card'));
+                const newHistory = currentCards.map(card => history.find(h => h._id === card.dataset.id));
+                history = newHistory;
+                renderHistory();
+            });
+
+            ui.list.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(ui.list, e.clientY);
+                if (afterElement == null) {
+                    ui.list.appendChild(draggedItem);
+                } else {
+                    ui.list.insertBefore(draggedItem, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.record-card:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
         window.deleteRow = (id) => { history = history.filter(h => h._id !== id); renderHistory(); };
 
         async function exportToExcel() {
             if (history.length === 0) return;
+            // 欄位順序：序號, 日期, 品名, 車號 (品名後增加車號), 進磅時間, 出磅時間, 空重, 總重, 淨重, 磅單編號
             const data = history.map((h, i) => ({ 
-                "序號": i + 1, "日期": h.date, "品名": h.material, "車號": h.truck_id, 
-                "總重": h.gross_weight, "空重": h.empty_weight, "淨重": h.net_weight, "磅單編號": h.serial 
+                "序號": i + 1, 
+                "日期": h.date, 
+                "品名": h.material, 
+                "車號": h.truck_id, // 調整至此：車號放在品名後面
+                "進磅時間": h.time_in || '---',
+                "出磅時間": h.time_out || '---',
+                "空重": h.empty_weight, 
+                "總重": h.gross_weight, 
+                "淨重": h.net_weight, 
+                "磅單編號": h.serial 
             }));
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -478,7 +525,7 @@
                     await navigator.share({
                         files: [file],
                         title: '中鋼磅單報表',
-                        text: '這是從 CSC Scanner 產出的辨識報表。'
+                        text: '這是由聯鋼開發 HSU SHIH HUNG 製作的報表。'
                     });
                 } catch (err) {
                     fallbackDownload(file, fileName);
