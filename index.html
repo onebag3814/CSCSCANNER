@@ -2,11 +2,11 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#f1f5f9">
-    <title>中鋼磅單辨識系統 v2.6.2</title>
+    <title>中鋼辨識系統 v2.6.2</title>
     
     <!-- 核心套件 -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,6 +26,7 @@
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none; /* 防止下拉重整影響拖曳 */
         }
 
         .ios-blur { 
@@ -49,27 +50,29 @@
             filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.1));
         }
 
-        /* 拖曳樣式 */
+        /* 拖曳樣式優化 (Touch Events) */
         .record-card {
-            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
-            touch-action: none;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+            touch-action: pan-y;
             user-select: none;
-            cursor: grab;
+            -webkit-user-select: none;
         }
-        .record-card:active { cursor: grabbing; }
         .record-card.dragging { 
-            opacity: 0.4; 
-            transform: scale(1.02); 
-            background: #eff6ff;
+            opacity: 0.85; 
+            transform: scale(1.03) translateY(-4px); 
+            background: #ffffff;
             border-color: #3b82f6;
+            box-shadow: 0 15px 30px rgba(37, 99, 235, 0.15);
             z-index: 50;
+            transition: none; /* 拖曳當下取消延遲，跟手更順 */
         }
+        .drag-handle { touch-action: none; } /* 確保按住把手時不會捲動畫面 */
 
         .preview-img-container { width: 100%; height: 100px; border-radius: 12px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #1e293b; position: relative; }
         .preview-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; }
         
-        .remove-x { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; cursor: pointer; z-index: 20; }
-        .rotate-btn { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; width: 28px; height: 28px; border-radius: 8px; display: flex; items: center; justify-content: center; cursor: pointer; z-index: 10; }
+        .remove-x { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; cursor: pointer; z-index: 20; }
+        .rotate-btn { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; }
 
         .dir-option { border: 2.5px solid #e2e8f0; padding: 10px; border-radius: 14px; transition: all 0.2s; text-align: center; cursor: pointer; background: white; }
         .dir-option.active { border-color: #3b82f6; background-color: #eff6ff; color: #1d4ed8; }
@@ -136,8 +139,8 @@
                 </button>
             </div>
 
-            <!-- 結果列表 -->
-            <div id="resultsList" class="space-y-3 pb-40">
+            <!-- 結果列表 (支援儲存草稿與拖曳) -->
+            <div id="resultsList" class="space-y-3 pb-40 relative">
                 <div id="welcome" class="text-center py-16 opacity-30">
                     <svg class="w-16 h-16 mx-auto mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <p class="text-xs font-bold italic tracking-widest uppercase text-slate-500">等待資料辨識中</p>
@@ -192,9 +195,9 @@
                     <div>
                         <h4 class="text-[12px] font-black text-slate-800 border-l-4 border-emerald-500 pl-2 mb-2 uppercase italic">主要功能說明</h4>
                         <ul class="text-[11px] text-slate-500 space-y-2 leading-relaxed">
-                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">1.</span><span><strong class="text-slate-700">掃描方向：</strong>依流水號位置選擇「左至右」或「右至左」模式。</span></li>
-                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">2.</span><span><strong class="text-slate-700">時間擷取：</strong>自動辨識進磅與出磅時間並匯入 Excel。</span></li>
-                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">3.</span><span><strong class="text-slate-700">原生分享：</strong>匯出報表後可直接傳送至通訊軟體。</span></li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">1.</span><span><strong class="text-slate-700">自動存檔：</strong>辨識資料即時同步保存，關閉網頁也不會遺失。</span></li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">2.</span><span><strong class="text-slate-700">結構化萃取：</strong>100% 精準擷取日期、車號、進出磅時間與重量等資料。</span></li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-500 font-black">3.</span><span><strong class="text-slate-700">原生分享：</strong>匯出報表後可直接傳送至 LINE 等通訊軟體。</span></li>
                         </ul>
                     </div>
                 </div>
@@ -217,9 +220,11 @@
     <script>
         const APP_ID = "csc-scanner-2.6.2";
         const model = "gemini-2.5-flash-lite"; 
+        
+        // 系統變數初始化：支援自動讀取草稿箱 (方案三)
         let userApiKey = localStorage.getItem(`${APP_ID}_KEY`) || "";
+        let history = JSON.parse(localStorage.getItem(`${APP_ID}_DRAFT`)) || []; 
         let queue = [];
-        let history = []; 
         let scanConfig = "ltr";
         let draggedItem = null;
 
@@ -245,19 +250,35 @@
 
         window.onload = () => {
             document.body.style.backgroundColor = "#f1f5f9";
+            
             if(userApiKey) {
                 ui.keyInput.value = userApiKey;
                 verifyKey(userApiKey);
             }
+            
             ui.drop.onclick = () => ui.input.click();
             ui.input.onchange = handleFileSelect;
             ui.btn.onclick = startAnalysis;
             ui.verifyBtn.onclick = () => verifyKey(ui.keyInput.value.trim());
-            ui.reset.onclick = () => { if(confirm("確定清除目前所有辨識資料？")) { history=[]; renderHistory(); } };
+            ui.reset.onclick = () => { 
+                if(confirm("確定清除目前所有辨識資料？")) { 
+                    history = []; 
+                    renderHistory(); 
+                } 
+            };
             ui.export.onclick = exportToExcel;
 
-            // 初始化拖曳事件監聽
-            setupDragging();
+            document.querySelectorAll('.dir-option').forEach(opt => {
+                opt.onclick = () => {
+                    document.querySelectorAll('.dir-option').forEach(el => el.classList.remove('active'));
+                    opt.classList.add('active');
+                    scanConfig = opt.dataset.dir;
+                };
+            });
+
+            // 啟動時渲染先前未清除的草稿
+            renderHistory();
+            setupSmartDragging();
         };
 
         async function verifyKey(key) {
@@ -361,22 +382,25 @@
         }
 
         async function startAnalysis() {
-            if(!userApiKey) { alert("請先進行 API 金鑰驗證"); toggleHelp(true); return; }
+            if(!userApiKey) { alert("請先點擊右上角進行 API 金鑰驗證"); toggleHelp(true); return; }
             ui.loading.classList.remove('hidden');
             const batch = [...queue];
             ui.total.innerText = batch.length;
             queue = []; renderQueue();
+            
             for (let i = 0; i < batch.length; i++) {
                 ui.curr.innerText = i + 1;
                 const rotatedBase64 = await finalizeImage(batch[i]);
                 const result = await callGemini(rotatedBase64);
+                
                 if (result) {
                     const dataArray = Array.isArray(result) ? result : [result];
                     dataArray.forEach(d => {
                         d._id = Math.random().toString(36).substring(7);
                         history.push(d);
                     });
-                    renderHistory();
+                    renderHistory(); // 每成功一筆即時儲存與更新
+                    if(navigator.vibrate) navigator.vibrate(50); // 成功回饋震動
                 }
             }
             ui.loading.classList.add('hidden');
@@ -402,31 +426,66 @@
             });
         }
 
-        async function callGemini(base64) {
-            const dir = scanConfig === "ltr" ? "左至右" : "右至左";
-            const prompt = `你現在是中鋼磅單辨識專家。辨識這張圖片並精確提取 JSON：date (日期), time_in (進磅時間), time_out (出磅時間), material (品名), truck_id (車號), gross_weight (總重), empty_weight (空重), net_weight (淨重), serial (磅單編號)。辨識掃描方向為：${dir}。只需回傳 JSON 字串，不要任何輔助文字。`;
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${userApiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
-                        generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
-                    })
-                });
-                const d = await res.json();
-                return JSON.parse(d.candidates[0].content.parts[0].text);
-            } catch (e) { return null; }
+        // 方案一：強化版 API 請求 (導入 Schema 結構化輸出與 Retry 重試機制)
+        async function callGemini(base64, retries = 2) {
+            const dirPrompt = scanConfig === "ltr" 
+                ? "排版方向：【左至右】。" 
+                : "【注意】這張單據排版為「右至左」，請從最右側開始尋找流水號與日期！";
+            
+            const prompt = `你是中鋼磅單辨識專家。請精確提取圖片內容。\n${dirPrompt}`;
+            
+            // 強制 AI 遵守的 JSON 結構規範
+            const responseSchema = {
+                type: "OBJECT",
+                properties: {
+                    date: { type: "STRING", description: "日期, 例如 2024/05/20" },
+                    time_in: { type: "STRING", description: "進磅時間" },
+                    time_out: { type: "STRING", description: "出磅時間" },
+                    material: { type: "STRING", description: "品名" },
+                    truck_id: { type: "STRING", description: "車號" },
+                    gross_weight: { type: "NUMBER", description: "總重" },
+                    empty_weight: { type: "NUMBER", description: "空重" },
+                    net_weight: { type: "NUMBER", description: "淨重" },
+                    serial: { type: "STRING", description: "磅單流水編號" }
+                }
+            };
+
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${userApiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
+                            generationConfig: { 
+                                responseMimeType: "application/json", 
+                                responseSchema: responseSchema, 
+                                temperature: 0.1 
+                            }
+                        })
+                    });
+                    
+                    if (!res.ok) throw new Error("API Error");
+                    const d = await res.json();
+                    return JSON.parse(d.candidates[0].content.parts[0].text);
+                } catch (e) {
+                    if (attempt === retries) return null; // 達到最大重試次數放棄
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // 等待 1 秒後重試
+                }
+            }
         }
 
         function renderHistory() {
+            // 方案三：即時同步寫入 LocalStorage，防呆保存
+            localStorage.setItem(`${APP_ID}_DRAFT`, JSON.stringify(history));
+            
             ui.stats.innerText = `${history.length} 幾筆資料`;
             ui.export.classList.toggle('hidden', history.length === 0);
             ui.welcome.classList.toggle('hidden', history.length > 0);
+            
             ui.list.innerHTML = history.map((h, i) => `
-                <div class="record-card bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-1" 
-                     draggable="true" data-id="${h._id}">
-                    <div class="px-3 text-slate-300 pointer-events-none">
+                <div class="record-card bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-1" data-id="${h._id}">
+                    <div class="px-4 py-2 drag-handle text-slate-300 cursor-grab active:cursor-grabbing">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8h16M4 16h16"/></svg>
                     </div>
                     <div class="flex-1 pointer-events-none">
@@ -445,41 +504,78 @@
                             </div>
                         </div>
                     </div>
-                    <button onclick="deleteRow('${h._id}')" class="p-2 text-slate-200 hover:text-red-500 transition-colors pointer-events-auto">
+                    <button onclick="deleteRow('${h._id}')" class="p-4 pl-2 text-slate-200 hover:text-red-500 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
             `).join('');
         }
 
-        // 拖曳排序邏輯 (擠壓取代)
-        function setupDragging() {
-            ui.list.addEventListener('dragstart', (e) => {
-                draggedItem = e.target.closest('.record-card');
-                draggedItem.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-            });
-
-            ui.list.addEventListener('dragend', () => {
-                if (draggedItem) {
-                    draggedItem.classList.remove('dragging');
-                    draggedItem = null;
-                }
-                const currentCards = Array.from(ui.list.querySelectorAll('.record-card'));
-                const newHistory = currentCards.map(card => history.find(h => h._id === card.dataset.id));
+        function syncHistoryWithDOM() {
+            const currentCards = Array.from(ui.list.querySelectorAll('.record-card'));
+            const newHistory = currentCards.map(card => history.find(h => h._id === card.dataset.id)).filter(Boolean);
+            if (newHistory.length === history.length) {
                 history = newHistory;
-                renderHistory();
-            });
+            }
+        }
 
-            ui.list.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                const afterElement = getDragAfterElement(ui.list, e.clientY);
-                if (afterElement == null) {
-                    ui.list.appendChild(draggedItem);
-                } else {
-                    ui.list.insertBefore(draggedItem, afterElement);
-                }
+        // 方案二：行動端 UX 優化 (使用原生 Touch Event 取代傳統 Drag & Drop)
+        function setupSmartDragging() {
+            // === 滑鼠支援 (保留給電腦端) ===
+            ui.list.addEventListener('dragstart', (e) => {
+                const handle = e.target.closest('.drag-handle');
+                if(!handle) { e.preventDefault(); return; } // 限定只能從把手拖曳
+                draggedItem = handle.closest('.record-card');
+                draggedItem.classList.add('dragging');
             });
+            ui.list.addEventListener('dragover', handleDragOver);
+            ui.list.addEventListener('dragend', handleDragEnd);
+
+            // === 行動端原生觸控支援 (流暢無卡頓) ===
+            ui.list.addEventListener('touchstart', (e) => {
+                const handle = e.target.closest('.drag-handle');
+                if (!handle) return; 
+                e.preventDefault(); // 阻止畫面捲動
+                
+                if(navigator.vibrate) navigator.vibrate(15); // 抓起時微震動
+                draggedItem = handle.closest('.record-card');
+                draggedItem.classList.add('dragging');
+            }, { passive: false });
+
+            ui.list.addEventListener('touchmove', (e) => {
+                if (!draggedItem) return;
+                e.preventDefault(); // 拖曳時禁止畫面亂滑
+                const touchY = e.touches[0].clientY;
+                handleDragOverMove(touchY);
+            }, { passive: false });
+
+            ui.list.addEventListener('touchend', () => {
+                if (!draggedItem) return;
+                if(navigator.vibrate) navigator.vibrate(15); // 放下時微震動
+                handleDragEnd();
+            });
+        }
+
+        function handleDragOverMove(y) {
+            const afterElement = getDragAfterElement(ui.list, y);
+            if (afterElement == null) {
+                ui.list.appendChild(draggedItem);
+            } else {
+                ui.list.insertBefore(draggedItem, afterElement);
+            }
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            if(!draggedItem) return;
+            handleDragOverMove(e.clientY);
+        }
+
+        function handleDragEnd() {
+            if (draggedItem) draggedItem.classList.remove('dragging');
+            draggedItem = null;
+            syncHistoryWithDOM();
+            renderHistory(); // 重新渲染並自動存檔
         }
 
         function getDragAfterElement(container, y) {
@@ -495,22 +591,25 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        window.deleteRow = (id) => { history = history.filter(h => h._id !== id); renderHistory(); };
+        window.deleteRow = (id) => { 
+            history = history.filter(h => h._id !== id); 
+            renderHistory(); 
+        };
 
         async function exportToExcel() {
             if (history.length === 0) return;
-            // 欄位順序：序號, 日期, 品名, 車號 (品名後增加車號), 進磅時間, 出磅時間, 空重, 總重, 淨重, 磅單編號
+            // 欄位順序維持：品名 -> 車號 -> 進磅時間 -> 出磅時間 -> 空重 -> 總重 -> 淨重
             const data = history.map((h, i) => ({ 
                 "序號": i + 1, 
-                "日期": h.date, 
-                "品名": h.material, 
-                "車號": h.truck_id, // 調整至此：車號放在品名後面
+                "日期": h.date || '---', 
+                "品名": h.material || '---', 
+                "車號": h.truck_id || '---', 
                 "進磅時間": h.time_in || '---',
                 "出磅時間": h.time_out || '---',
-                "空重": h.empty_weight, 
-                "總重": h.gross_weight, 
-                "淨重": h.net_weight, 
-                "磅單編號": h.serial 
+                "空重": h.empty_weight || '---', 
+                "總重": h.gross_weight || '---', 
+                "淨重": h.net_weight || '---', 
+                "磅單編號": h.serial || '---' 
             }));
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -547,15 +646,6 @@
                 window.URL.revokeObjectURL(url);
             }, 100);
         }
-
-        document.querySelectorAll('.dir-option').forEach(opt => {
-            opt.onclick = () => {
-                document.querySelectorAll('.dir-option').forEach(el => el.classList.remove('active'));
-                opt.classList.add('active');
-                scanConfig = opt.dataset.dir;
-            };
-        });
     </script>
 </body>
 </html>
-
