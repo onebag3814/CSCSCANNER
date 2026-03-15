@@ -401,6 +401,8 @@
                     });
                     renderHistory(); // 每成功一筆即時儲存與更新
                     if(navigator.vibrate) navigator.vibrate(50); // 成功回饋震動
+                } else {
+                    alert(`第 ${i + 1} 張單據辨識失敗，請確認圖片清晰度後重試。`);
                 }
             }
             ui.loading.classList.add('hidden');
@@ -426,29 +428,13 @@
             });
         }
 
-        // 方案一：強化版 API 請求 (導入 Schema 結構化輸出與 Retry 重試機制)
-        async function callGemini(base64, retries = 2) {
+        // 退回穩定的 Prompt 請求模式，並加入更強的右至左提示與除錯機制
+        async function callGemini(base64, retries = 1) {
             const dirPrompt = scanConfig === "ltr" 
                 ? "排版方向：【左至右】。" 
-                : "【注意】這張單據排版為「右至左」，請從最右側開始尋找流水號與日期！";
+                : "【特別注意】這張單據排版為「右至左」或關鍵流水號在右側！請務必從圖片最右側開始尋找流水號、日期與車號等對應資訊。";
             
-            const prompt = `你是中鋼磅單辨識專家。請精確提取圖片內容。\n${dirPrompt}`;
-            
-            // 強制 AI 遵守的 JSON 結構規範
-            const responseSchema = {
-                type: "OBJECT",
-                properties: {
-                    date: { type: "STRING", description: "日期, 例如 2024/05/20" },
-                    time_in: { type: "STRING", description: "進磅時間" },
-                    time_out: { type: "STRING", description: "出磅時間" },
-                    material: { type: "STRING", description: "品名" },
-                    truck_id: { type: "STRING", description: "車號" },
-                    gross_weight: { type: "NUMBER", description: "總重" },
-                    empty_weight: { type: "NUMBER", description: "空重" },
-                    net_weight: { type: "NUMBER", description: "淨重" },
-                    serial: { type: "STRING", description: "磅單流水編號" }
-                }
-            };
+            const prompt = `你現在是中鋼磅單辨識專家。辨識這張圖片並精確提取 JSON：date (日期), time_in (進磅時間), time_out (出磅時間), material (品名), truck_id (車號), gross_weight (總重), empty_weight (空重), net_weight (淨重), serial (磅單編號)。\n\n${dirPrompt}\n\n只需回傳純 JSON 字串，不要 Markdown 標記，不要任何輔助文字。`;
 
             for (let attempt = 0; attempt <= retries; attempt++) {
                 try {
@@ -459,16 +445,21 @@
                             contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64 } }] }],
                             generationConfig: { 
                                 responseMimeType: "application/json", 
-                                responseSchema: responseSchema, 
                                 temperature: 0.1 
                             }
                         })
                     });
                     
-                    if (!res.ok) throw new Error("API Error");
+                    if (!res.ok) throw new Error(`API Error: ${res.status}`);
                     const d = await res.json();
-                    return JSON.parse(d.candidates[0].content.parts[0].text);
+                    let rawText = d.candidates[0].content.parts[0].text;
+                    
+                    // 防呆處理：強制清除 AI 有時候亂加的 Markdown 標記
+                    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    
+                    return JSON.parse(rawText);
                 } catch (e) {
+                    console.error(`Attempt ${attempt + 1} failed:`, e);
                     if (attempt === retries) return null; // 達到最大重試次數放棄
                     await new Promise(resolve => setTimeout(resolve, 1000)); // 等待 1 秒後重試
                 }
