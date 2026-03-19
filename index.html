@@ -37,7 +37,7 @@
         }
 
         .modal-blur {
-            background: rgba(30, 58, 138, 0.4); /* 偏藍的遮罩 */
+            background: rgba(30, 58, 138, 0.4);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
         }
@@ -151,7 +151,7 @@
                 </button>
             </div>
 
-            <!-- 結果列表 (將歡迎畫面獨立出來，防止被覆蓋刪除) -->
+            <!-- 歡迎畫面與結果列表 -->
             <div id="welcome" class="text-center py-20 opacity-40">
                 <svg class="w-12 h-12 mx-auto mb-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                 <p class="text-[10px] font-bold tracking-[0.3em] uppercase text-blue-400">尚無資料，等待辨識</p>
@@ -405,28 +405,7 @@
                 if (result) {
                     let dataArray = Array.isArray(result) ? result : [result];
                     
-                    // 【核心技術：由前端 JavaScript 強制進行幾何排序】
-                    // 利用 AI 提供的 (x_position, y_position) 強制按照使用者選擇的方向洗牌
-                    dataArray.sort((a, b) => {
-                        const yA = a.y_position || 0;
-                        const yB = b.y_position || 0;
-                        const xA = a.x_position || 0;
-                        const xB = b.x_position || 0;
-                        
-                        const yDiff = yA - yB;
-                        // 若 Y 軸位置落差大於 20，視為不同橫排 (Row)，由上排到下
-                        if (Math.abs(yDiff) > 20) {
-                            return yDiff; 
-                        }
-                        
-                        // 若在同一排，則由「左至右」或「右至左」決定
-                        if (scanConfig === "rtl") {
-                            return xB - xA; // 右至左: X 座標越大的 (越右邊的) 排越前面
-                        } else {
-                            return xA - xB; // 左至右: X 座標越小的 (越左邊的) 排越前面
-                        }
-                    });
-
+                    // 移除強制座標運算，信任 AI 基於自然語言的順序解析
                     dataArray.forEach(d => {
                         d._id = Math.random().toString(36).substring(7);
                         history.push(d);
@@ -462,27 +441,29 @@
         }
 
         async function callGemini(base64, retries = 1) {
+            // 修復2：用最強烈的自然語言指令要求 AI 遵循讀取順序
+            const dirPrompt = scanConfig === "ltr" 
+                ? "【嚴格讀取順序】若圖片中有多張並排單據，請務必按照「由左至右、由上至下」的順序讀取，依序存入陣列。" 
+                : "【嚴格讀取順序】若圖片中有多張並排單據，請務必按照「由右至左、由上至下」的順序讀取！也就是先讀取畫面最右邊的單據，再往左讀取。依序存入陣列。";
+            
             const prompt = `你現在是中鋼磅單辨識專家。請精確提取圖片中【所有】單據的數據，並回傳 JSON 陣列 (Array)。
 【單據特徵錨定】
-- truck_id (車號): 尋找「車號:」或「號:」後面的英數組合(如 KER5108N 或 KLA7375N)。
-- material (品名): 請尋找「廠商產品:」或「中聯」字樣的【下方同行或次行】。品名格式極多變（例如：(L2G)收料:廠內殘鋼、台泥案耐火材...等），請將該段文字完整提取作為品名。
-- date (日期): 尋找「過磅日期:」後面的數值。
-- time_in (進磅時間): 尋找「進磅時間:」。
-- time_out (出磅時間): 尋找「出磅時間:」。
-- serial (磅單編號): 尋找「過磅序號:」。
-- empty_weight (空重): 尋找「空車重:」或「空重:」後數字。
-- gross_weight (總重): 尋找「總重:」後數字。
-- net_weight (淨重): 尋找「淨重:」後數字。
+- truck_id (車號): 「車號:」或「號:」後面的英數組合。
+- material (品名): 請尋找「廠商產品:中聯」字樣的下方。請【完全照抄圖片上實際出現的文字】(如包含括號請一併保留)，絕對禁止猜測或套用任何範例字眼！
+- date (日期): 「過磅日期:」後面的數值。
+- time_in (進磅時間): 「進磅時間:」。
+- time_out (出磅時間): 「出磅時間:」。
+- serial (磅單編號): 「過磅序號:」。
+- empty_weight (空重): 「空車重:」或「空重:」後數字。
+- gross_weight (總重): 「總重:」後數字。
+- net_weight (淨重): 「淨重:」後數字。
 
-【空間定位座標 (必填)】
-為解決多張單據排序問題，請判斷該單據在整張圖片中的相對中心點位置，並填寫以下兩個數字(0~100)：
-- x_position: 橫向位置 (0為最左邊，100為最右邊)
-- y_position: 直向位置 (0為最上方，100為最下方)
-(例如：右上角的單據約為 "x_position": 80, "y_position": 20)
+${dirPrompt}
 
 【輸出規範】
-回傳格式必須為 JSON 陣列：[{"date":"...","x_position":80,"y_position":20}, ...]
-鍵值必須嚴格為：date, time_in, time_out, material, truck_id, gross_weight, empty_weight, net_weight, serial, x_position, y_position。若某數值無法辨識請填入 "---"。
+回傳格式必須為 JSON 陣列：[{"date":"...","material":"..."}, ...]
+鍵值必須嚴格為：date, time_in, time_out, material, truck_id, gross_weight, empty_weight, net_weight, serial。
+若某數值無法辨識請填入 "---"。
 絕對不要加上 \`\`\`json 或任何 Markdown 標記，僅回傳純 JSON 陣列字串！`;
 
             for (let attempt = 0; attempt <= retries; attempt++) {
